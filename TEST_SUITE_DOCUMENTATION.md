@@ -155,3 +155,160 @@ management.endpoint.metrics.enabled=true
 ## Running Tests
 
 ### Individual Test Categories
+
+```bash
+# Run application tests
+mvn test -Dtest="*HeartbeatMicroserviceApplicationTests"
+
+# Run controller tests
+mvn test -Dtest="*HealthControllerTest"
+
+# Run integration tests
+mvn test -Dtest="*HeartbeatIntegrationTest"
+
+# Run configuration tests
+mvn test -Dtest="*HeartbeatConfigurationTest"
+
+# Run performance tests
+mvn test -Dtest="*HeartbeatPerformanceTest"
+```
+
+### All Tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run tests with detailed output
+mvn test -Dtest.verbose=true
+
+# Run tests and generate reports
+mvn test surefire-report:report
+```
+
+## Test Coverage
+
+The test suite provides comprehensive coverage of:
+
+### Functional Coverage
+
+- ✅ Application startup and context loading
+- ✅ REST endpoint functionality
+- ✅ JSON response structure validation
+- ✅ Error handling (404 responses)
+- ✅ Spring Boot Actuator integration
+
+### Configuration Coverage
+
+- ✅ Eureka client configuration
+- ✅ Heartbeat timing configuration
+- ✅ Server and application settings
+- ✅ Actuator endpoint configuration
+- ✅ Configuration value validation
+
+### Integration Coverage
+
+- ✅ Full HTTP request/response cycle
+- ✅ Real server startup and shutdown
+- ✅ Port binding and networking
+- ✅ Cross-component integration
+
+### Performance Coverage
+
+- ✅ Concurrent request handling
+- ✅ Response time validation
+- ✅ Load testing (up to 100 concurrent requests)
+- ✅ Performance consistency validation
+
+## Validation Script Integration
+
+The `run_and_validate.sh` script has been updated to work with this test suite:
+
+### Script Features
+
+- ✅ Project structure validation
+- ✅ Maven and Java environment checks
+- ✅ Compilation validation
+- ✅ Test execution and reporting
+- ✅ Feature validation (heartbeat configuration)
+- ✅ Integration testing with real application startup
+- ✅ Comprehensive reporting
+
+### Script Usage
+
+```bash
+# Make script executable
+chmod +x run_and_validate.sh
+
+# Run full validation
+./run_and_validate.sh
+
+# View generated report
+cat validation_report.txt
+```
+
+## Best Practices Implemented
+
+### Test Organization
+
+- Clear separation of concerns (unit, integration, performance)
+- Descriptive test method names
+- Proper test categorization
+
+### Test Configuration
+
+- Isolated test environment
+- Disabled external dependencies (Eureka)
+- Random port assignment to avoid conflicts
+
+### Assertions
+
+- Comprehensive response validation
+- Both positive and negative test cases
+- Performance criteria validation
+
+### Error Handling
+
+- Graceful handling of missing dependencies
+- Proper cleanup of resources
+- Clear error messages
+
+## Continuous Integration
+
+The test suite is designed to work well in CI/CD environments:
+
+- No external dependencies required
+- Fast execution (< 2 minutes total)
+- Clear pass/fail criteria
+- Detailed reporting
+- Proper resource cleanup
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**: Tests use random ports to avoid conflicts
+2. **Eureka Connection**: Disabled in test configuration
+3. **Timing Issues**: Adequate wait times for application startup
+4. **Resource Cleanup**: Automatic cleanup in test teardown
+
+### Debug Mode
+
+Enable debug logging by adding to test configuration:
+
+```properties
+logging.level.com.example.heartbeat=DEBUG
+logging.level.org.springframework.test=DEBUG
+```
+
+## Future Enhancements
+
+Potential improvements to the test suite:
+
+1. **Code Coverage Reports**: Integration with JaCoCo
+2. **Contract Testing**: API contract validation
+3. **Security Testing**: Authentication and authorization tests
+4. **Database Testing**: If persistence is added
+5. **Monitoring Tests**: Metrics and monitoring validation
+
+This comprehensive test suite ensures the heartbeat microservice is thoroughly validated across all functional, integration, configuration, and performance aspects.
