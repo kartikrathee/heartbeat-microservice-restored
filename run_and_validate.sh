@@ -102,3 +102,107 @@ compile_project() {
     if mvn compile -q; then
         print_success "Project compiled successfully"
     else
+        print_error "Compilation failed"
+        exit 1
+    fi
+}
+
+# Function to compile test sources
+compile_tests() {
+    print_status "Compiling test sources..."
+    if mvn test-compile -q; then
+        print_success "Test sources compiled successfully"
+    else
+        print_error "Test compilation failed"
+        exit 1
+    fi
+}
+
+# Function to run tests
+run_tests() {
+    print_status "Running tests..."
+    
+    # Run tests and capture output
+    if mvn test -q > test_output.log 2>&1; then
+        print_success "All tests passed"
+
+        # Extract test results from Surefire reports
+        for report in target/surefire-reports/TEST-*.xml; do
+            if [[ -f "$report" ]]; then
+                test_count=$(grep -o 'tests="[0-9]*"' "$report" | grep -o '[0-9]*')
+                failures=$(grep -o 'failures="[0-9]*"' "$report" | grep -o '[0-9]*')
+                errors=$(grep -o 'errors="[0-9]*"' "$report" | grep -o '[0-9]*')
+                test_file=$(basename "$report" .xml | sed 's/TEST-//')
+                print_success "Test Results ($test_file): $test_count tests run, $failures failures, $errors errors"
+            fi
+        done
+    else
+        print_error "Tests failed"
+        echo "Test output:"
+        cat test_output.log
+        exit 1
+    fi
+}
+
+# Function to validate test coverage
+validate_test_coverage() {
+    print_status "Validating test coverage..."
+    
+    # Check if test classes exist
+    test_classes=(
+        "target/test-classes/com/example/heartbeat/HeartbeatMicroserviceApplicationTests.class"
+        "target/test-classes/com/example/heartbeat/controller/HealthControllerTest.class"
+        "target/test-classes/com/example/heartbeat/integration/HeartbeatIntegrationTest.class"
+        "target/test-classes/com/example/heartbeat/config/HeartbeatConfigurationTest.class"
+        "target/test-classes/com/example/heartbeat/performance/HeartbeatPerformanceTest.class"
+    )
+    
+    test_classes_found=0
+    for test_class in "${test_classes[@]}"; do
+        if [[ -f "$test_class" ]]; then
+            test_classes_found=$((test_classes_found + 1))
+        fi
+    done
+    
+    if [[ $test_classes_found -eq ${#test_classes[@]} ]]; then
+        print_success "All test classes found and compiled ($test_classes_found/${#test_classes[@]})"
+    else
+        print_warning "Some test classes not found ($test_classes_found/${#test_classes[@]} found)"
+    fi
+
+    # Check if main classes exist
+    main_classes=(
+        "target/classes/com/example/heartbeat/HeartbeatMicroserviceApplication.class"
+        "target/classes/com/example/heartbeat/controller/HealthController.class"
+    )
+    
+    main_classes_found=0
+    for main_class in "${main_classes[@]}"; do
+        if [[ -f "$main_class" ]]; then
+            main_classes_found=$((main_classes_found + 1))
+        fi
+    done
+    
+    if [[ $main_classes_found -eq ${#main_classes[@]} ]]; then
+        print_success "All main classes found and compiled ($main_classes_found/${#main_classes[@]})"
+    else
+        print_error "Main classes not found ($main_classes_found/${#main_classes[@]} found)"
+        exit 1
+    fi
+}
+
+# Function to run dependency check
+check_dependencies() {
+    print_status "Checking project dependencies..."
+    
+    if mvn dependency:resolve -q > /dev/null 2>&1; then
+        print_success "All dependencies resolved successfully"
+    else
+        print_error "Failed to resolve dependencies"
+        exit 1
+    fi
+}
+
+# Function to validate specific test categories
+validate_test_categories() {
+    print_status "Validating test categories..."
