@@ -206,3 +206,107 @@ check_dependencies() {
 # Function to validate specific test categories
 validate_test_categories() {
     print_status "Validating test categories..."
+
+    categories=(
+        "HeartbeatMicroserviceApplicationTests"
+        "HealthControllerTest"
+        "HeartbeatIntegrationTest"
+        "HeartbeatConfigurationTest"
+        "HeartbeatPerformanceTest"
+    )
+
+    for category in "${categories[@]}"; do
+        if mvn test -Dtest="*$category" -q > /dev/null 2>&1; then
+            print_success "Test category '$category' passed"
+        else
+            print_error "Test category '$category' failed"
+            exit 1
+        fi
+    done
+}
+
+# Function to validate heartbeat features
+validate_heartbeat_features() {
+    print_status "Validating heartbeat microservice features..."
+    
+    # Check if main application contains required annotations and configuration
+    app_file="src/main/java/com/example/heartbeat/HeartbeatMicroserviceApplication.java"
+    controller_file="src/main/java/com/example/heartbeat/controller/HealthController.java"
+    
+    app_features=(
+        "@SpringBootApplication"
+        "@EnableEurekaClient"
+        "eureka.instance.lease-renewal-interval-in-seconds"
+        "eureka.instance.lease-expiration-duration-in-seconds"
+        "heartbeat-microservice"
+    )
+    
+    controller_features=(
+        "@RestController"
+        "@GetMapping"
+        "status"
+        "heartbeat_interval"
+        "lease_expiration"
+    )
+    
+    print_status "Checking application features..."
+    for feature in "${app_features[@]}"; do
+        if grep -q "$feature" "$app_file"; then
+            print_success "Application feature '$feature' found"
+        else
+            print_warning "Application feature '$feature' not found"
+        fi
+    done
+    
+    print_status "Checking controller features..."
+    for feature in "${controller_features[@]}"; do
+        if grep -q "$feature" "$controller_file"; then
+            print_success "Controller feature '$feature' found"
+        else
+            print_warning "Controller feature '$feature' not found"
+        fi
+    done
+}
+
+# Function to run integration validation
+run_integration_validation() {
+    print_status "Running integration validation..."
+    
+    # Start the application in background for integration testing
+    print_status "Starting Spring Boot application for integration testing..."
+    mvn spring-boot:run > app_output.log 2>&1 &
+    APP_PID=$!
+    
+    # Wait for application to start
+    sleep 15
+    
+    # Check if application is running
+    if kill -0 $APP_PID 2>/dev/null; then
+        print_success "Application started successfully (PID: $APP_PID)"
+        
+        # Test heartbeat microservice endpoints if curl is available
+        if command -v curl &> /dev/null; then
+            print_status "Testing home endpoint..."
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ | grep -q "200"; then
+                print_success "Home endpoint test passed"
+            else
+                print_warning "Home endpoint test failed or returned non-200 status"
+            fi
+            
+            print_status "Testing status endpoint..."
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/status | grep -q "200"; then
+                print_success "Status endpoint test passed"
+            else
+                print_warning "Status endpoint test failed or returned non-200 status"
+            fi
+            
+            print_status "Testing actuator health endpoint..."
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health | grep -q "200"; then
+                print_success "Actuator health endpoint test passed"
+            else
+                print_warning "Actuator health endpoint test failed or returned non-200 status"
+            fi
+        else
+            print_warning "curl not available, skipping endpoint tests"
+        fi
+        
