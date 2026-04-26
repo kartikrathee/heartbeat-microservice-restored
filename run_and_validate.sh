@@ -310,3 +310,107 @@ run_integration_validation() {
             print_warning "curl not available, skipping endpoint tests"
         fi
         
+        # Stop the application
+        print_status "Stopping application..."
+        kill $APP_PID 2>/dev/null || true
+        wait $APP_PID 2>/dev/null || true
+        print_success "Application stopped"
+    else
+        print_error "Failed to start application"
+        exit 1
+    fi
+}
+
+# Function to generate project report
+generate_report() {
+    print_status "Generating project report..."
+    
+    echo "Project Validation Report" > validation_report.txt
+    echo "=========================" >> validation_report.txt
+    echo "Date: $(date)" >> validation_report.txt
+    echo "Project: heartbeat-microservice" >> validation_report.txt
+    echo "" >> validation_report.txt
+
+    echo "Maven Version:" >> validation_report.txt
+    mvn -version >> validation_report.txt 2>&1
+    echo "" >> validation_report.txt
+
+    echo "Java Version:" >> validation_report.txt
+    java -version >> validation_report.txt 2>&1
+    echo "" >> validation_report.txt
+
+    echo "Dependencies:" >> validation_report.txt
+    mvn dependency:list -q >> validation_report.txt 2>&1
+    echo "" >> validation_report.txt
+
+    echo "Test Results Summary:" >> validation_report.txt
+    for report in target/surefire-reports/TEST-*.xml; do
+        if [[ -f "$report" ]]; then
+            echo "Test Results Summary ($(basename "$report")):" >> validation_report.txt
+            grep -E "(tests=|failures=|errors=|time=)" "$report" >> validation_report.txt
+        fi
+    done
+
+    echo "" >> validation_report.txt
+    echo "Heartbeat Microservice Features Validated:" >> validation_report.txt
+    echo "- Spring Boot Application (@SpringBootApplication)" >> validation_report.txt
+    echo "- Eureka Client Integration (@EnableEurekaClient)" >> validation_report.txt
+    echo "- Heartbeat Configuration (10 second intervals)" >> validation_report.txt
+    echo "- Lease Expiration Configuration (30 seconds)" >> validation_report.txt
+    echo "- Health Controller with Status Endpoints" >> validation_report.txt
+    echo "- Spring Boot Actuator Integration" >> validation_report.txt
+    echo "- Comprehensive Test Suite (Unit, Integration, Performance)" >> validation_report.txt
+
+    print_success "Report generated: validation_report.txt"
+}
+
+# Function to cleanup temporary files
+cleanup() {
+    print_status "Cleaning up temporary files..."
+    rm -f test_output.log app_output.log
+    print_success "Cleanup completed"
+}
+
+# Main execution function
+main() {
+    print_header "Maven Project Validation Script"
+    print_status "Starting validation for heartbeat-microservice project..."
+
+    # Pre-flight checks
+    check_java
+    check_maven
+    validate_project_structure
+
+    print_header "Building and Testing Project"
+
+    # Build and test
+    clean_project
+    check_dependencies
+    compile_project
+    compile_tests
+    validate_test_coverage
+    run_tests
+    validate_test_categories
+
+    print_header "Heartbeat Feature Validation"
+    validate_heartbeat_features
+
+    print_header "Integration Testing"
+    run_integration_validation
+
+    print_header "Generating Report"
+    generate_report
+
+    print_header "Validation Complete"
+    print_success "All validations passed successfully!"
+    print_success "The heartbeat-microservice project is working correctly."
+    print_success "Heartbeat configuration and Eureka integration have been validated."
+
+    cleanup
+}
+
+# Trap to ensure cleanup on exit
+trap cleanup EXIT
+
+# Run main function
+main "$@"
