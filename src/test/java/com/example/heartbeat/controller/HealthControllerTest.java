@@ -62,3 +62,67 @@ class HealthControllerTest {
         MvcResult result = mockMvc.perform(get("/status"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.service").value("heartbeat-microservice"))
+                .andExpect(jsonPath("$.status").value("HEALTHY"))
+                .andExpect(jsonPath("$.heartbeat_interval").value("10 seconds"))
+                .andExpect(jsonPath("$.lease_expiration").value("30 seconds"))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andReturn();
+
+        // Verify the response structure and heartbeat configuration
+        String responseContent = result.getResponse().getContentAsString();
+        Map<String, Object> response = objectMapper.readValue(responseContent, Map.class);
+        
+        assertThat(response).containsKeys("service", "status", "heartbeat_interval", "lease_expiration", "timestamp");
+        assertThat(response.get("heartbeat_interval")).isEqualTo("10 seconds");
+        assertThat(response.get("lease_expiration")).isEqualTo("30 seconds");
+    }
+
+    @Test
+    void homeEndpoint_ShouldReturnValidTimestamp() throws Exception {
+        MvcResult result = mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseContent = result.getResponse().getContentAsString();
+        Map<String, Object> response = objectMapper.readValue(responseContent, Map.class);
+        
+        // Verify timestamp is present and not null
+        assertThat(response.get("timestamp")).isNotNull();
+        assertThat(response.get("timestamp").toString()).isNotEmpty();
+    }
+
+    @Test
+    void statusEndpoint_ShouldReturnValidTimestamp() throws Exception {
+        MvcResult result = mockMvc.perform(get("/status"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseContent = result.getResponse().getContentAsString();
+        Map<String, Object> response = objectMapper.readValue(responseContent, Map.class);
+        
+        // Verify timestamp is present and not null
+        assertThat(response.get("timestamp")).isNotNull();
+        assertThat(response.get("timestamp").toString()).isNotEmpty();
+    }
+
+    @Test
+    void homeEndpoint_ShouldHaveCorrectResponseStructure() throws Exception {
+        MvcResult result = mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseContent = result.getResponse().getContentAsString();
+        Map<String, Object> response = objectMapper.readValue(responseContent, Map.class);
+        
+        // Verify all expected fields are present
+        assertThat(response).hasSize(4);
+        assertThat(response).containsOnlyKeys("service", "status", "timestamp", "message");
+    }
+
+    @Test
+    void statusEndpoint_ShouldHaveCorrectResponseStructure() throws Exception {
+        MvcResult result = mockMvc.perform(get("/status"))
+                .andExpect(status().isOk())
+                .andReturn();
+
