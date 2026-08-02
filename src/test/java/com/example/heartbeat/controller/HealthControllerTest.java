@@ -126,3 +126,67 @@ class HealthControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
+        String responseContent = result.getResponse().getContentAsString();
+        Map<String, Object> response = objectMapper.readValue(responseContent, Map.class);
+        
+        // Verify all expected fields are present
+        assertThat(response).hasSize(5);
+        assertThat(response).containsOnlyKeys("service", "status", "heartbeat_interval", "lease_expiration", "timestamp");
+    }
+
+    // ========== ADDITIONAL ROBUST TEST COVERAGE ==========
+
+    @Nested
+    @DisplayName("HTTP Method Tests")
+    class HttpMethodTests {
+
+        @Test
+        @DisplayName("Home endpoint should only accept GET requests")
+        void homeEndpoint_ShouldOnlyAcceptGetRequests() throws Exception {
+            // Test unsupported HTTP methods
+            mockMvc.perform(post("/"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(put("/"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(delete("/"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(patch("/"))
+                    .andExpect(status().isMethodNotAllowed());
+        }
+
+        @Test
+        @DisplayName("Status endpoint should only accept GET requests")
+        void statusEndpoint_ShouldOnlyAcceptGetRequests() throws Exception {
+            // Test unsupported HTTP methods
+            mockMvc.perform(post("/status"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(put("/status"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(delete("/status"))
+                    .andExpect(status().isMethodNotAllowed());
+
+            mockMvc.perform(patch("/status"))
+                    .andExpect(status().isMethodNotAllowed());
+        }
+    }
+
+    @Nested
+    @DisplayName("Content Type and Headers Tests")
+    class ContentTypeAndHeadersTests {
+
+        @Test
+        @DisplayName("Endpoints should return JSON content type")
+        void endpoints_ShouldReturnJsonContentType() throws Exception {
+            mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(header().string("Content-Type", "application/json"));
+
+            mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
