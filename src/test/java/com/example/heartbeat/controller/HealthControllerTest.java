@@ -190,3 +190,68 @@ class HealthControllerTest {
             mockMvc.perform(get("/status"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(header().string("Content-Type", "application/json"));
+        }
+
+        @Test
+        @DisplayName("Endpoints should accept compatible Accept headers")
+        void endpoints_ShouldAcceptCompatibleAcceptHeaders() throws Exception {
+            // Test with application/json
+            mockMvc.perform(get("/").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+
+            // Test with */*
+            mockMvc.perform(get("/").accept(MediaType.ALL))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+
+            // Test with text/plain (should return 406 Not Acceptable)
+            mockMvc.perform(get("/").accept(MediaType.TEXT_PLAIN))
+                    .andExpect(status().isNotAcceptable());
+        }
+
+        @Test
+        @DisplayName("Endpoints should return 406 for incompatible Accept headers")
+        void endpoints_ShouldReturn406ForIncompatibleAcceptHeaders() throws Exception {
+            // Test various incompatible Accept headers
+            mockMvc.perform(get("/").accept(MediaType.TEXT_PLAIN))
+                    .andExpect(status().isNotAcceptable());
+
+            mockMvc.perform(get("/").accept(MediaType.TEXT_HTML))
+                    .andExpect(status().isNotAcceptable());
+
+            mockMvc.perform(get("/status").accept(MediaType.APPLICATION_XML))
+                    .andExpect(status().isNotAcceptable());
+        }
+    }
+
+    @Nested
+    @DisplayName("Data Validation Tests")
+    class DataValidationTests {
+
+        @Test
+        @DisplayName("Timestamp should be valid ISO format")
+        void endpoints_ShouldReturnValidISOTimestamp() throws Exception {
+            MvcResult homeResult = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MvcResult statusResult = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // Verify home endpoint timestamp
+            Map<String, Object> homeResponse = objectMapper.readValue(
+                    homeResult.getResponse().getContentAsString(), Map.class);
+            String homeTimestamp = homeResponse.get("timestamp").toString();
+            
+            assertThatNoException().isThrownBy(() -> LocalDateTime.parse(homeTimestamp));
+
+            // Verify status endpoint timestamp
+            Map<String, Object> statusResponse = objectMapper.readValue(
+                    statusResult.getResponse().getContentAsString(), Map.class);
+            String statusTimestamp = statusResponse.get("timestamp").toString();
+            
+            assertThatNoException().isThrownBy(() -> LocalDateTime.parse(statusTimestamp));
+        }
