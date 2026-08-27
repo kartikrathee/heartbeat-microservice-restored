@@ -255,3 +255,67 @@ class HealthControllerTest {
             
             assertThatNoException().isThrownBy(() -> LocalDateTime.parse(statusTimestamp));
         }
+
+        @Test
+        @DisplayName("Service name should be consistent across endpoints")
+        void endpoints_ShouldReturnConsistentServiceName() throws Exception {
+            MvcResult homeResult = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MvcResult statusResult = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Map<String, Object> homeResponse = objectMapper.readValue(
+                    homeResult.getResponse().getContentAsString(), Map.class);
+            Map<String, Object> statusResponse = objectMapper.readValue(
+                    statusResult.getResponse().getContentAsString(), Map.class);
+
+            assertThat(homeResponse.get("service")).isEqualTo(statusResponse.get("service"));
+            assertThat(homeResponse.get("service")).isEqualTo("heartbeat-microservice");
+        }
+
+        @Test
+        @DisplayName("Heartbeat configuration should have valid values")
+        void statusEndpoint_ShouldReturnValidHeartbeatConfiguration() throws Exception {
+            MvcResult result = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Map<String, Object> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), Map.class);
+
+            String heartbeatInterval = response.get("heartbeat_interval").toString();
+            String leaseExpiration = response.get("lease_expiration").toString();
+
+            // Verify format and values
+            assertThat(heartbeatInterval).matches("\\d+ seconds");
+            assertThat(leaseExpiration).matches("\\d+ seconds");
+            assertThat(heartbeatInterval).isEqualTo("10 seconds");
+            assertThat(leaseExpiration).isEqualTo("30 seconds");
+
+            // Verify lease expiration is greater than heartbeat interval
+            int heartbeatValue = Integer.parseInt(heartbeatInterval.split(" ")[0]);
+            int leaseValue = Integer.parseInt(leaseExpiration.split(" ")[0]);
+            assertThat(leaseValue).isGreaterThan(heartbeatValue);
+        }
+    }
+
+    @Nested
+    @DisplayName("Performance and Reliability Tests")
+    class PerformanceAndReliabilityTests {
+
+        @RepeatedTest(5)
+        @DisplayName("Endpoints should be consistent across multiple calls")
+        void endpoints_ShouldBeConsistentAcrossMultipleCalls() throws Exception {
+            // Test home endpoint consistency
+            MvcResult result1 = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MvcResult result2 = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Map<String, Object> response1 = objectMapper.readValue(
