@@ -319,3 +319,67 @@ class HealthControllerTest {
                     .andReturn();
 
             Map<String, Object> response1 = objectMapper.readValue(
+                    result1.getResponse().getContentAsString(), Map.class);
+            Map<String, Object> response2 = objectMapper.readValue(
+                    result2.getResponse().getContentAsString(), Map.class);
+
+            // Service, status, and message should be identical
+            assertThat(response1.get("service")).isEqualTo(response2.get("service"));
+            assertThat(response1.get("status")).isEqualTo(response2.get("status"));
+            assertThat(response1.get("message")).isEqualTo(response2.get("message"));
+
+            // Timestamps should be different (or very close)
+            assertThat(response1.get("timestamp")).isNotNull();
+            assertThat(response2.get("timestamp")).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Endpoints should handle concurrent requests")
+        void endpoints_ShouldHandleConcurrentRequests() throws Exception {
+            int numberOfRequests = 10;
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+            for (int i = 0; i < numberOfRequests; i++) {
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        mockMvc.perform(get("/"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.service").value("heartbeat-microservice"))
+                                .andExpect(jsonPath("$.status").value("UP"));
+
+                        mockMvc.perform(get("/status"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.service").value("heartbeat-microservice"))
+                                .andExpect(jsonPath("$.status").value("HEALTHY"));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }, executor);
+                futures.add(future);
+            }
+
+            // Wait for all requests to complete
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0]));
+            allFutures.get(10, TimeUnit.SECONDS);
+
+            executor.shutdown();
+        }
+    }
+
+    @Nested
+    @DisplayName("Edge Cases and Error Handling")
+    class EdgeCasesAndErrorHandlingTests {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"/invalid", "/home", "/health", "/heartbeat", "/api", "/api/status"})
+        @DisplayName("Invalid endpoints should return 404")
+        void invalidEndpoints_ShouldReturn404(String invalidPath) throws Exception {
+            mockMvc.perform(get(invalidPath))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("Endpoints with trailing slashes should work")
+        void endpointsWithTrailingSlashes_ShouldWork() throws Exception {
