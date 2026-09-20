@@ -383,3 +383,67 @@ class HealthControllerTest {
         @Test
         @DisplayName("Endpoints with trailing slashes should work")
         void endpointsWithTrailingSlashes_ShouldWork() throws Exception {
+            // Note: Spring Boot typically handles trailing slashes, but let's test
+            mockMvc.perform(get("/status/"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.service").value("heartbeat-microservice"));
+        }
+
+        @Test
+        @DisplayName("Endpoints should handle query parameters gracefully")
+        void endpoints_ShouldHandleQueryParametersGracefully() throws Exception {
+            mockMvc.perform(get("/").param("test", "value"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.service").value("heartbeat-microservice"));
+
+            mockMvc.perform(get("/status").param("format", "json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.service").value("heartbeat-microservice"));
+        }
+
+        @Test
+        @DisplayName("Endpoints should handle special characters in query params")
+        void endpoints_ShouldHandleSpecialCharactersInQueryParams() throws Exception {
+            mockMvc.perform(get("/").param("test", "value with spaces & symbols!"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.service").value("heartbeat-microservice"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Response Time Tests")
+    class ResponseTimeTests {
+
+        @Test
+        @DisplayName("Endpoints should respond quickly")
+        void endpoints_ShouldRespondQuickly() throws Exception {
+            long startTime = System.currentTimeMillis();
+            
+            mockMvc.perform(get("/"))
+                    .andExpect(status().isOk());
+            
+            long homeEndTime = System.currentTimeMillis();
+            long homeResponseTime = homeEndTime - startTime;
+            
+            mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk());
+            
+            long statusEndTime = System.currentTimeMillis();
+            long statusResponseTime = statusEndTime - homeEndTime;
+
+            // Response times should be reasonable (less than 100ms for unit tests)
+            assertThat(homeResponseTime).isLessThan(100);
+            assertThat(statusResponseTime).isLessThan(100);
+        }
+    }
+
+    @Nested
+    @DisplayName("JSON Structure Validation")
+    class JsonStructureValidationTests {
+
+        @Test
+        @DisplayName("Response should be valid JSON")
+        void endpoints_ShouldReturnValidJson() throws Exception {
+            MvcResult homeResult = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
