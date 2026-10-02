@@ -447,3 +447,68 @@ class HealthControllerTest {
             MvcResult homeResult = mockMvc.perform(get("/"))
                     .andExpect(status().isOk())
                     .andReturn();
+
+            MvcResult statusResult = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // Verify JSON can be parsed without exceptions
+            assertThatNoException().isThrownBy(() -> 
+                objectMapper.readValue(homeResult.getResponse().getContentAsString(), Map.class));
+            
+            assertThatNoException().isThrownBy(() -> 
+                objectMapper.readValue(statusResult.getResponse().getContentAsString(), Map.class));
+        }
+
+        @Test
+        @DisplayName("Response should not contain null values")
+        void endpoints_ShouldNotContainNullValues() throws Exception {
+            MvcResult homeResult = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MvcResult statusResult = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Map<String, Object> homeResponse = objectMapper.readValue(
+                    homeResult.getResponse().getContentAsString(), Map.class);
+            Map<String, Object> statusResponse = objectMapper.readValue(
+                    statusResult.getResponse().getContentAsString(), Map.class);
+
+            // Verify no null values in responses
+            homeResponse.values().forEach(value -> assertThat(value).isNotNull());
+            statusResponse.values().forEach(value -> assertThat(value).isNotNull());
+        }
+
+        @Test
+        @DisplayName("Response should not contain empty strings")
+        void endpoints_ShouldNotContainEmptyStrings() throws Exception {
+            MvcResult homeResult = mockMvc.perform(get("/"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MvcResult statusResult = mockMvc.perform(get("/status"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Map<String, Object> homeResponse = objectMapper.readValue(
+                    homeResult.getResponse().getContentAsString(), Map.class);
+            Map<String, Object> statusResponse = objectMapper.readValue(
+                    statusResult.getResponse().getContentAsString(), Map.class);
+
+            // Verify no empty string values
+            homeResponse.values().forEach(value -> {
+                if (value instanceof String) {
+                    assertThat((String) value).isNotEmpty();
+                }
+            });
+            
+            statusResponse.values().forEach(value -> {
+                if (value instanceof String) {
+                    assertThat((String) value).isNotEmpty();
+                }
+            });
+        }
+    }
+}
