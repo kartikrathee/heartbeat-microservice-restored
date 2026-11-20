@@ -1,0 +1,31 @@
+Service registry heartbeat
+
+Description: Configure the heartbeat interval for a microservice registered with a service discovery server like Eureka. In application.properties, set the eureka.instance.lease-renewal-interval-in-seconds property to control how often the service sends a "still alive" signal to the registry.
+
+Skills Tested: Microservices concepts, service discovery configuration, and heartbeat mechanisms.
+
+You are tasked with configuring the heartbeat mechanism for a microservice that registers itself with a service discovery server, such as Netflix Eureka. The heartbeat is a periodic "still alive" signal sent by the microservice to the registry to indicate that it is healthy and available.
+
+Requirements:
+
+Configuration:
+
+In the application.properties file of your Spring Boot microservice, set the property eureka.instance.lease-renewal-interval-in-seconds.
+This property controls how often (in seconds) the microservice sends its heartbeat to the Eureka server.
+Choose an appropriate interval (for example, 10 seconds) and document your choice.
+Explanation:
+
+Briefly explain the purpose of the heartbeat mechanism in service discovery.
+Describe the impact of changing the lease-renewal-interval-in-seconds value (e.g., what happens if it is set too high or too low).
+Validation:
+
+Indicate how you would verify that the heartbeat interval is working as expected (e.g., logs, Eureka dashboard, etc.).
+Skills Tested:
+
+Microservices architecture concepts
+Service discovery configuration
+Heartbeat/health check mechanisms in distributed systems
+Deliverables:
+
+The relevant snippet from application.properties
+A short written explanation as described above
